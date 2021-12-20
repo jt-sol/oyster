@@ -1,5 +1,6 @@
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, AccountInfo } from '@solana/web3.js';
 import { useWallet } from '@oyster/common';
+import _wasm from '../wasm/wormhole_staking';
 import {
   getRealmConfigAddress,
   getSignatoryRecordAddress,
@@ -20,6 +21,7 @@ import {
   useGovernanceAccountsByFilter,
 } from './accountHooks';
 import { useRpcContext } from './useRpcContext';
+import { useEffect, useState } from 'react';
 
 // ----- Realm Config ---------
 
@@ -197,3 +199,48 @@ export const useTokenOwnerVoteRecord = (
     [tokenOwnerRecord, proposal],
   );
 };
+
+// ----- StakingAccount -----
+
+const STAKE_PROGRAM_ID = new PublicKey(
+  '3dKaLtaqF1yzRYxT3KygG8vtw2KzVyxMttmEyfswB8HQ',
+);
+
+export async function useStakeAccountRecord() {
+  const { wallet, connection, endpoint } = useRpcContext();
+  const [accounts, setAccounts] = useState<
+    { pubkey: PublicKey; account: AccountInfo<Buffer> }[]
+  >();
+
+  useEffect(() => {
+    const updateAccount = async () => {
+      if (!wallet?.publicKey) {
+        return [];
+      }
+
+      const accts = await connection.getProgramAccounts(STAKE_PROGRAM_ID, {
+        filters: [
+          { dataSize: 138 },
+          { memcmp: { offset: 0, bytes: wallet.publicKey.toBase58() } },
+        ],
+      });
+
+      accts.forEach(elt => {
+        if (elt.account.data.length == 138) {
+          console.log('Deserializing: ' + elt.pubkey.toBase58());
+          try {
+            let deserialized = _wasm.deserialize_stake_acct(
+              new Uint8Array(elt.account.data),
+            );
+            return deserialized;
+          } catch (error) {
+            console.log('Deserialization failed');
+          }
+        }
+      });
+
+      setAccounts(accts);
+    };
+    updateAccount();
+  }, [wallet, endpoint, connection]);
+}

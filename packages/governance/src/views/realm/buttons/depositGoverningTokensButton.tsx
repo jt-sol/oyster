@@ -6,6 +6,7 @@ import { LABELS } from '../../../constants';
 import { hooks } from '@oyster/common';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { depositGoverningTokens } from '../../../actions/depositGoverningTokens';
+import { useWalletTokenOwnerRecord } from '../../../hooks/apiHooks';
 import { PublicKey } from '@solana/web3.js';
 import { useRpcContext } from '../../../hooks/useRpcContext';
 
@@ -24,15 +25,17 @@ export function DepositGoverningTokensButton({
   const rpcContext = useRpcContext();
 
   const governingTokenAccount = useAccountByMint(governingTokenMint);
+  const tokenOwnerRecord = useWalletTokenOwnerRecord(
+    realm?.pubkey,
+    governingTokenMint,
+  );
 
   if (!realm) {
     return null;
   }
 
   const isVisible =
-    realm != null &&
-    governingTokenAccount &&
-    !governingTokenAccount.info.amount.isZero();
+    !tokenOwnerRecord;
 
   return isVisible ? (
     <Button
@@ -44,7 +47,7 @@ export function DepositGoverningTokensButton({
           content: (
             <Row>
               <Col span={24}>
-                <p>{LABELS.DEPOSIT_TOKENS_QUESTION}</p>
+                <p>{LABELS.CREATE_VOTER_RECORD}</p>
               </Col>
             </Row>
           ),
@@ -63,7 +66,7 @@ export function DepositGoverningTokensButton({
         })
       }
     >
-      {LABELS.DEPOSIT_TOKENS(tokenName)}
+      {LABELS.CREATE_VOTER_RECORD}
     </Button>
   ) : null;
 }

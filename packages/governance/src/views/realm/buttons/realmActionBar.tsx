@@ -40,16 +40,6 @@ export function RealmActionBar({
         governingTokenMint={realm?.info.communityMint}
         tokenName="Governance"
       ></WithdrawGoverningTokensButton>
-      <DepositGoverningTokensButton
-        realm={realm}
-        governingTokenMint={realm.info.config.councilMint}
-        tokenName="Council"
-      ></DepositGoverningTokensButton>
-      <WithdrawGoverningTokensButton
-        realm={realm}
-        governingTokenMint={realm.info.config.councilMint}
-        tokenName="Council"
-      ></WithdrawGoverningTokensButton>
 
       {showSettings && (
         <div ref={parentRef} className="realm-popup-action-container">

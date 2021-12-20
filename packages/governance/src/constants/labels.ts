@@ -184,6 +184,8 @@ export const LABELS = {
   DEPOSIT_TOKENS_QUESTION: 'Deposit your tokens?',
   DEPOSIT: 'Deposit',
 
+  CREATE_VOTER_RECORD : 'Create voter record',
+
   WITHDRAW_TOKENS: (tokenName?: string) => `Withdraw ${tokenName ?? ''} Tokens`,
   WITHDRAW_TOKENS_QUESTION: 'Withdraw your tokens?',
 

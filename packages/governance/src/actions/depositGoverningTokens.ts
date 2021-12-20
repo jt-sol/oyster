@@ -3,6 +3,7 @@ import { models, TokenAccount } from '@oyster/common';
 import { withDepositGoverningTokens } from '../models/withDepositGoverningTokens';
 import { sendTransactionWithNotifications } from '../tools/transactions';
 import { RpcContext } from '../models/core/api';
+import {BN} from 'bn.js'
 
 const { approve } = models;
 
@@ -15,7 +16,7 @@ export const depositGoverningTokens = async (
   let instructions: TransactionInstruction[] = [];
   let signers: Account[] = [];
 
-  const amount = governingTokenSource.info.amount;
+  const amount = new BN(0);
 
   const transferAuthority = approve(
     instructions,
@@ -45,7 +46,7 @@ export const depositGoverningTokens = async (
     wallet,
     instructions,
     signers,
-    'Depositing governing tokens',
-    'Tokens have been deposited',
+    'Creating token record',
+    'Token record created',
   );
 };

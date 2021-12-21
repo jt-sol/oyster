@@ -36,7 +36,6 @@ export function DepositGoverningTokensButton({
     return null;
   }
 
-
   const isVisible =
     !tokenOwnerRecord;
 

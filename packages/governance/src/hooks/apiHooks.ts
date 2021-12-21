@@ -1,6 +1,7 @@
-import { PublicKey, AccountInfo } from '@solana/web3.js';
+import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@oyster/common';
-import _wasm from '../wasm/wormhole_staking';
+import { deserializeAccount } from '@oyster/common';
+import { deserialize_stake_acct, deserialize_stake_pool_acct, get_stake_pool_token_account } from '../wasm/wormhole_staking';
 import {
   getRealmConfigAddress,
   getSignatoryRecordAddress,
@@ -22,6 +23,8 @@ import {
 } from './accountHooks';
 import { useRpcContext } from './useRpcContext';
 import { useEffect, useState } from 'react';
+import { deserialize } from 'v8';
+import { connect } from 'http2';
 
 // ----- Realm Config ---------
 
@@ -206,41 +209,103 @@ const STAKE_PROGRAM_ID = new PublicKey(
   '3dKaLtaqF1yzRYxT3KygG8vtw2KzVyxMttmEyfswB8HQ',
 );
 
-export async function useStakeAccountRecord() {
+export function useStakeAccountRecord() {
   const { wallet, connection, endpoint } = useRpcContext();
-  const [accounts, setAccounts] = useState<
-    { pubkey: PublicKey; account: AccountInfo<Buffer> }[]
-  >();
+  const [stakeAccount, setStakeAccount] = useState<any>();
+  const [stakePoolAccount, setStakePoolAccount] = useState<any>();
+  const [stakePoolStakingTokenAccount, setStakePoolStakingTokenAccount] = useState<any>();
 
   useEffect(() => {
-    const updateAccount = async () => {
+    const updateStakeAccount = async () => {
       if (!wallet?.publicKey) {
-        return [];
+        return ;
       }
 
-      const accts = await connection.getProgramAccounts(STAKE_PROGRAM_ID, {
+      const raw_stake_accounts = await connection.getProgramAccounts(STAKE_PROGRAM_ID, {
         filters: [
           { dataSize: 138 },
           { memcmp: { offset: 0, bytes: wallet.publicKey.toBase58() } },
         ],
       });
+      let deserialized_stake_account;
 
-      accts.forEach(elt => {
-        if (elt.account.data.length == 138) {
-          console.log('Deserializing: ' + elt.pubkey.toBase58());
-          try {
-            let deserialized = _wasm.deserialize_stake_acct(
-              new Uint8Array(elt.account.data),
-            );
-            return deserialized;
-          } catch (error) {
-            console.log('Deserialization failed');
+
+      if (raw_stake_accounts.length === 0){
+        return;
+      }
+
+      for (const el of raw_stake_accounts){
+        try {
+          let deserialized = deserialize_stake_acct(
+            new Uint8Array(el.account.data),
+          );
+
+          if (deserialized.shares > 0){
+            deserialized_stake_account = deserialized;
           }
+        } catch (error) {
+          console.log('Deserialization failed');
         }
-      });
-
-      setAccounts(accts);
+      }
+      setStakeAccount(deserialized_stake_account);
     };
-    updateAccount();
+    updateStakeAccount();
   }, [wallet, endpoint, connection]);
+
+  useEffect(() => {
+    const updateStakePoolAccount = async () => {
+      if (!(stakeAccount?.account_state?.BONDED)){
+        return 
+      }
+
+      const raw_stake_pool = await connection.getAccountInfo(new PublicKey(stakeAccount.account_state.BONDED));
+      if (!(raw_stake_pool?.data)){
+        return 
+      }
+      let deserialized;
+      try {
+        deserialized = deserialize_stake_pool_acct(
+          new Uint8Array(raw_stake_pool.data),
+        );
+      } catch (error) {
+        console.log('Deserialization failed');
+      }
+
+      setStakePoolAccount(deserialized);
+    };
+    updateStakePoolAccount();
+  }, [stakeAccount]);
+
+  useEffect(() => {
+    const updateStakePoolStakingTokenAccount = async () => {
+      if (!(stakeAccount?.account_state?.BONDED)){
+        return 
+      }
+
+      const stake_pool_token_account_pubkey = get_stake_pool_token_account(STAKE_PROGRAM_ID.toBase58(), new PublicKey(stakeAccount.account_state.BONDED).toBase58());
+
+      const raw_stake_pool_token_account = await connection.getAccountInfo(new PublicKey(stake_pool_token_account_pubkey));
+
+      if (!(raw_stake_pool_token_account?.data)){
+        return 
+      }
+
+      let deserialized;
+      try {
+        deserialized = deserializeAccount(
+          raw_stake_pool_token_account.data,
+        );
+      } catch (error) {
+        console.log('Deserialization failed');
+      }
+
+      setStakePoolStakingTokenAccount(deserialized);
+    };
+    updateStakePoolStakingTokenAccount();
+  }, [stakeAccount]);
+
+
+  
+
+  return {stakeAccount,stakePoolAccount,stakePoolStakingTokenAccount};
 }

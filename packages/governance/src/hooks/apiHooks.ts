@@ -214,6 +214,7 @@ export function useStakeAccountRecord() {
   const [stakeAccount, setStakeAccount] = useState<any>();
   const [stakePoolAccount, setStakePoolAccount] = useState<any>();
   const [stakePoolStakingTokenAccount, setStakePoolStakingTokenAccount] = useState<any>();
+  const [votingBalance, setVotingBalance] = useState<any>();
 
   useEffect(() => {
     const updateStakeAccount = async () => {
@@ -304,8 +305,24 @@ export function useStakeAccountRecord() {
     updateStakePoolStakingTokenAccount();
   }, [stakeAccount]);
 
+  useEffect(() => {
+    const updateVotingBalance = async () => {
+      if (!(stakeAccount?.shares)){
+        return 
+      }
 
-  
+      if (!(stakePoolAccount?.total_shares)){
+        return 
+      }
 
-  return {stakeAccount,stakePoolAccount,stakePoolStakingTokenAccount};
+      if (!(stakePoolStakingTokenAccount?.amount)){
+        return 
+      }
+
+      setVotingBalance(stakePoolStakingTokenAccount.amount * stakeAccount.shares / stakePoolAccount.total_shares);
+    };
+    updateVotingBalance();
+  }, [stakeAccount, stakePoolAccount, stakePoolStakingTokenAccount]);
+
+  return {stakeAccount,stakePoolAccount,stakePoolStakingTokenAccount, votingBalance};
 }

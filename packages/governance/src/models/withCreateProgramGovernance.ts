@@ -8,6 +8,7 @@ import { GOVERNANCE_SCHEMA } from './serialisation';
 import { serialize } from 'borsh';
 import { GovernanceConfig } from './accounts';
 import { CreateProgramGovernanceArgs } from './instructions';
+import { getRealmConfigAddress } from './accounts'; 
 
 export const withCreateProgramGovernance = async (
   instructions: TransactionInstruction[],
@@ -20,7 +21,10 @@ export const withCreateProgramGovernance = async (
   tokenOwnerRecord: PublicKey,
   payer: PublicKey,
   governanceAuthority: PublicKey,
+  voterWeightRecord : PublicKey
 ): Promise<{ governanceAddress: PublicKey }> => {
+
+  console.log('withCreateProgramGovernance');
   const {
     system: systemId,
     bpf_upgrade_loader: bpfUpgradableLoaderId,
@@ -39,6 +43,11 @@ export const withCreateProgramGovernance = async (
       governedProgram.toBuffer(),
     ],
     programId,
+  );
+
+  const realmConfigAddress = await getRealmConfigAddress(
+    programId,
+    realm,
   );
 
   const [programDataAddress] = await PublicKey.findProgramAddress(
@@ -102,7 +111,18 @@ export const withCreateProgramGovernance = async (
       isWritable: false,
       isSigner: true,
     },
+    {
+      pubkey: realmConfigAddress,
+      isWritable : false,
+      isSigner : false
+    },
+    { pubkey: voterWeightRecord,
+      isWritable : false,
+      isSigner : false
+    }
   ];
+
+  
 
   instructions.push(
     new TransactionInstruction({

@@ -1,7 +1,11 @@
 import { PublicKey } from '@solana/web3.js';
 import { useWallet } from '@oyster/common';
 import { deserializeAccount } from '@oyster/common';
-import { deserialize_stake_acct, deserialize_stake_pool_acct, get_stake_pool_token_account } from '../wasm/wormhole_staking';
+import {
+  deserialize_stake_acct,
+  deserialize_stake_pool_acct,
+  get_stake_pool_token_account,
+} from '../wasm/wormhole_staking';
 import {
   getRealmConfigAddress,
   getSignatoryRecordAddress,
@@ -23,8 +27,7 @@ import {
 } from './accountHooks';
 import { useRpcContext } from './useRpcContext';
 import { useEffect, useState } from 'react';
-import { deserialize } from 'v8';
-import { connect } from 'http2';
+import { STAKE_PROGRAM_ID } from '../constants/pubkeys';
 
 // ----- Realm Config ---------
 
@@ -205,44 +208,47 @@ export const useTokenOwnerVoteRecord = (
 
 // ----- StakingAccount -----
 
-const STAKE_PROGRAM_ID = new PublicKey(
-  '3dKaLtaqF1yzRYxT3KygG8vtw2KzVyxMttmEyfswB8HQ',
-);
-
 export function useStakeAccountRecord() {
   const { wallet, connection, endpoint } = useRpcContext();
   const [stakeAccount, setStakeAccount] = useState<any>();
   const [stakePoolAccount, setStakePoolAccount] = useState<any>();
-  const [stakePoolStakingTokenAccount, setStakePoolStakingTokenAccount] = useState<any>();
+  const [
+    stakePoolStakingTokenAccount,
+    setStakePoolStakingTokenAccount,
+  ] = useState<any>();
   const [votingBalance, setVotingBalance] = useState<any>();
-
+  const [stakeAccountPubkey, setStakeAccountPubkey] = useState<PublicKey>();
+  const [stakePoolStakingTokenAccountPubkey, setStakePoolStakingTokenAccountPubkey] = useState<PublicKey>();
   useEffect(() => {
     const updateStakeAccount = async () => {
       if (!wallet?.publicKey) {
-        return ;
-      }
-
-      const raw_stake_accounts = await connection.getProgramAccounts(STAKE_PROGRAM_ID, {
-        filters: [
-          { dataSize: 138 },
-          { memcmp: { offset: 0, bytes: wallet.publicKey.toBase58() } },
-        ],
-      });
-      let deserialized_stake_account;
-
-
-      if (raw_stake_accounts.length === 0){
         return;
       }
 
-      for (const el of raw_stake_accounts){
+      const raw_stake_accounts = await connection.getProgramAccounts(
+        STAKE_PROGRAM_ID,
+        {
+          filters: [
+            { dataSize: 138 },
+            { memcmp: { offset: 0, bytes: wallet.publicKey.toBase58() } },
+          ],
+        },
+      );
+      let deserialized_stake_account;
+
+      if (raw_stake_accounts.length === 0) {
+        return;
+      }
+
+      for (const el of raw_stake_accounts) {
         try {
           let deserialized = deserialize_stake_acct(
             new Uint8Array(el.account.data),
           );
 
-          if (deserialized.shares > 0){
+          if (deserialized.shares > 0) {
             deserialized_stake_account = deserialized;
+            setStakeAccountPubkey(new PublicKey(el.pubkey));
           }
         } catch (error) {
           console.log('Deserialization failed');
@@ -255,13 +261,15 @@ export function useStakeAccountRecord() {
 
   useEffect(() => {
     const updateStakePoolAccount = async () => {
-      if (!(stakeAccount?.account_state?.BONDED)){
-        return 
+      if (!stakeAccount?.account_state?.BONDED) {
+        return;
       }
 
-      const raw_stake_pool = await connection.getAccountInfo(new PublicKey(stakeAccount.account_state.BONDED));
-      if (!(raw_stake_pool?.data)){
-        return 
+      const raw_stake_pool = await connection.getAccountInfo(
+        new PublicKey(stakeAccount.account_state.BONDED),
+      );
+      if (!raw_stake_pool?.data) {
+        return;
       }
       let deserialized;
       try {
@@ -279,23 +287,28 @@ export function useStakeAccountRecord() {
 
   useEffect(() => {
     const updateStakePoolStakingTokenAccount = async () => {
-      if (!(stakeAccount?.account_state?.BONDED)){
-        return 
+      if (!stakeAccount?.account_state?.BONDED) {
+        return;
       }
 
-      const stake_pool_token_account_pubkey = get_stake_pool_token_account(STAKE_PROGRAM_ID.toBase58(), new PublicKey(stakeAccount.account_state.BONDED).toBase58());
+      const stake_pool_token_account_pubkey = get_stake_pool_token_account(
+        STAKE_PROGRAM_ID.toBase58(),
+        new PublicKey(stakeAccount.account_state.BONDED).toBase58(),
+      );
 
-      const raw_stake_pool_token_account = await connection.getAccountInfo(new PublicKey(stake_pool_token_account_pubkey));
+      setStakePoolStakingTokenAccountPubkey(new PublicKey(stake_pool_token_account_pubkey));
 
-      if (!(raw_stake_pool_token_account?.data)){
-        return 
+      const raw_stake_pool_token_account = await connection.getAccountInfo(
+        new PublicKey(stake_pool_token_account_pubkey),
+      );
+
+      if (!raw_stake_pool_token_account?.data) {
+        return;
       }
 
       let deserialized;
       try {
-        deserialized = deserializeAccount(
-          raw_stake_pool_token_account.data,
-        );
+        deserialized = deserializeAccount(raw_stake_pool_token_account.data);
       } catch (error) {
         console.log('Deserialization failed');
       }
@@ -307,22 +320,32 @@ export function useStakeAccountRecord() {
 
   useEffect(() => {
     const updateVotingBalance = async () => {
-      if (!(stakeAccount?.shares)){
-        return 
+      if (!stakeAccount?.shares) {
+        return;
       }
 
-      if (!(stakePoolAccount?.total_shares)){
-        return 
+      if (!stakePoolAccount?.total_shares) {
+        return;
       }
 
-      if (!(stakePoolStakingTokenAccount?.amount)){
-        return 
+      if (!stakePoolStakingTokenAccount?.amount) {
+        return;
       }
 
-      setVotingBalance(stakePoolStakingTokenAccount.amount * stakeAccount.shares / stakePoolAccount.total_shares);
+      setVotingBalance(
+        (stakePoolStakingTokenAccount.amount * stakeAccount.shares) /
+          stakePoolAccount.total_shares,
+      );
     };
     updateVotingBalance();
   }, [stakeAccount, stakePoolAccount, stakePoolStakingTokenAccount]);
 
-  return {stakeAccount,stakePoolAccount,stakePoolStakingTokenAccount, votingBalance};
+  return {
+    stakeAccount,
+    stakePoolAccount,
+    stakePoolStakingTokenAccount,
+    votingBalance,
+    stakeAccountPubkey,
+    stakePoolStakingTokenAccountPubkey
+  };
 }

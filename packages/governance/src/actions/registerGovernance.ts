@@ -8,9 +8,12 @@ import { sendTransactionWithNotifications } from '../tools/transactions';
 import { withCreateMintGovernance } from '../models/withCreateMintGovernance';
 import { withCreateTokenGovernance } from '../models/withCreateTokenGovernance';
 import { RpcContext } from '../models/core/api';
+import { withRevise } from '../models/withRevise';
 
 export const registerGovernance = async (
   { connection, wallet, programId, walletPubkey }: RpcContext,
+  accountRecord : any,
+  communityMint : PublicKey,
   governanceType: GovernanceType,
   realm: PublicKey,
   governedAccount: PublicKey,
@@ -18,7 +21,21 @@ export const registerGovernance = async (
   transferAuthority: boolean,
   tokenOwnerRecord: PublicKey,
 ): Promise<PublicKey> => {
+
+  console.log('registerGovernance');
+
   let instructions: TransactionInstruction[] = [];
+
+  console.log(accountRecord);
+  let voterWeightRecord = await withRevise(
+    instructions,
+    walletPubkey,
+    realm,
+    communityMint,
+    accountRecord.stakeAccountPubkey,
+    new PublicKey(accountRecord.stakeAccount.account_state.BONDED),
+    accountRecord.stakePoolStakingTokenAccountPubkey
+  );
 
   let governanceAddress;
   let governanceAuthority = walletPubkey;
@@ -52,6 +69,7 @@ export const registerGovernance = async (
           tokenOwnerRecord,
           walletPubkey,
           governanceAuthority,
+          voterWeightRecord
         )
       ).governanceAddress;
       break;

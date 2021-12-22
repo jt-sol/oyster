@@ -1,12 +1,13 @@
 import React from 'react';
 import { contexts, ParsedAccount } from '@oyster/common';
 import { TokenOwnerRecord } from '../../models/accounts';
-
+import {useStakeAccountRecord } from '../../hooks/apiHooks';
 import {
   formatMintNaturalAmountAsDecimal,
   formatMintVoteWeight,
 } from '../../tools/units';
 import { MintInfo } from '@solana/spl-token';
+import { BN } from 'bn.js'
 
 const { useMint } = contexts.Accounts;
 
@@ -15,10 +16,14 @@ export function RealmDepositBadge({
   communityTokenOwnerRecord,
   showVoteWeights,
 }: {
+  
   councilTokenOwnerRecord: ParsedAccount<TokenOwnerRecord> | undefined;
   communityTokenOwnerRecord: ParsedAccount<TokenOwnerRecord> | undefined;
   showVoteWeights?: boolean;
 }) {
+
+  const accountRecord = useStakeAccountRecord();
+
   const communityMint = useMint(
     communityTokenOwnerRecord?.info.governingTokenMint,
   );
@@ -31,12 +36,12 @@ export function RealmDepositBadge({
 
   return (
     <>
-      <span>deposited </span>
+      <span>staked </span>
       {communityTokenOwnerRecord && communityMint && (
         <TokenDepositStatistics
           label="tokens"
           mint={communityMint}
-          tokenOwnerRecord={communityTokenOwnerRecord}
+          amount={accountRecord.votingBalance}
           showVoteWeights={showVoteWeights}
         ></TokenDepositStatistics>
       )}
@@ -45,7 +50,7 @@ export function RealmDepositBadge({
         <TokenDepositStatistics
           label="council tokens"
           mint={councilMint}
-          tokenOwnerRecord={councilTokenOwnerRecord}
+          amount={accountRecord.votingBalance}
           showVoteWeights={showVoteWeights}
         ></TokenDepositStatistics>
       )}
@@ -56,27 +61,27 @@ export function RealmDepositBadge({
 function TokenDepositStatistics({
   label,
   mint,
-  tokenOwnerRecord,
+  amount,
   showVoteWeights,
 }: {
   label: string;
   mint: MintInfo;
-  tokenOwnerRecord: ParsedAccount<TokenOwnerRecord>;
+  amount : number;
   showVoteWeights: boolean | undefined;
 }) {
   return (
     <>
       <span>{`${label}: ${formatMintNaturalAmountAsDecimal(
         mint,
-        tokenOwnerRecord.info.governingTokenDepositAmount,
+        new BN(amount),
       )}`}</span>
-      {showVoteWeights &&
-        !tokenOwnerRecord.info.governingTokenDepositAmount.isZero() && (
+       {showVoteWeights &&
+        (amount !==0) && (
           <span>{` (${formatMintVoteWeight(
             mint,
-            tokenOwnerRecord.info.governingTokenDepositAmount,
+            new BN(amount),
           )})`}</span>
         )}
-    </>
+   </>
   );
 }

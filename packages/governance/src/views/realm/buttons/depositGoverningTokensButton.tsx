@@ -6,7 +6,7 @@ import { LABELS } from '../../../constants';
 import { hooks } from '@oyster/common';
 import { ExclamationCircleOutlined } from '@ant-design/icons';
 import { depositGoverningTokens } from '../../../actions/depositGoverningTokens';
-import { useWalletTokenOwnerRecord, useStakeAccountRecord } from '../../../hooks/apiHooks';
+import { useWalletTokenOwnerRecord } from '../../../hooks/apiHooks';
 import { PublicKey } from '@solana/web3.js';
 import { useRpcContext } from '../../../hooks/useRpcContext';
 
@@ -29,8 +29,6 @@ export function DepositGoverningTokensButton({
     realm?.pubkey,
     governingTokenMint,
   );
-  const accountRecord = useStakeAccountRecord();
-  console.log(accountRecord);
 
   if (!realm) {
     return null;

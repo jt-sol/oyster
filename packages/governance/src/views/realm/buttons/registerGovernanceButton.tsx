@@ -24,7 +24,11 @@ import {
 } from '../../../components/governanceConfigFormItem/governanceConfigFormItem';
 import { ParsedAccount } from '../../../../../common/dist/lib';
 import { Realm } from '../../../models/accounts';
-import { useWalletTokenOwnerRecord } from '../../../hooks/apiHooks';
+import {
+  useWalletTokenOwnerRecord,
+  useStakeAccountRecord,
+} from '../../../hooks/apiHooks';
+import BN from 'bn.js';
 
 export function RegisterGovernanceButton({
   buttonProps,
@@ -50,13 +54,15 @@ export function RegisterGovernanceButton({
     realm?.info.config.councilMint,
   );
 
+  const accountRecord = useStakeAccountRecord();
+
   if (!realm) {
     return null;
   }
 
   const canCreateGovernanceUsingCommunityTokens =
     communityTokenOwnerRecord &&
-    communityTokenOwnerRecord.info.governingTokenDepositAmount.cmp(
+    new BN(accountRecord.votingBalance).cmp(
       realm.info.config.minCommunityTokensToCreateGovernance,
     ) >= 0;
 
@@ -81,6 +87,8 @@ export function RegisterGovernanceButton({
 
     return await registerGovernance(
       rpcContext,
+      accountRecord,
+      realm?.info.communityMint,
       values.governanceType,
       realmKey,
       new PublicKey(values.governedAccountAddress),

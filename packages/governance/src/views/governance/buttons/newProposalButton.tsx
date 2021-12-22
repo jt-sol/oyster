@@ -11,7 +11,7 @@ import { Redirect } from 'react-router';
 import { GoverningTokenType } from '../../../models/enums';
 import { Governance, Realm } from '../../../models/accounts';
 
-import { useWalletTokenOwnerRecord } from '../../../hooks/apiHooks';
+import { useWalletTokenOwnerRecord, useStakeAccountRecord } from '../../../hooks/apiHooks';
 import { ModalFormAction } from '../../../components/ModalFormAction/modalFormAction';
 import BN from 'bn.js';
 import { useRpcContext } from '../../../hooks/useRpcContext';
@@ -40,6 +40,7 @@ export function NewProposalButton({
   );
 
   const communityMint = useMint(realm?.info.communityMint);
+  const accountRecord = useStakeAccountRecord();
 
   if (!governance || !communityMint || !realm) {
     return null;
@@ -47,7 +48,7 @@ export function NewProposalButton({
 
   const canCreateProposalUsingCommunityTokens =
     communityTokenOwnerRecord &&
-    communityTokenOwnerRecord.info.governingTokenDepositAmount.cmp(
+    new BN(accountRecord.votingBalance).cmp(
       new BN(governance?.info.config.minCommunityTokensToCreateProposal),
     ) >= 0;
 
@@ -92,6 +93,7 @@ export function NewProposalButton({
 
     return await createProposal(
       rpcContext,
+      accountRecord,
       governance.info.realm,
       governance.pubkey,
       tokenOwnerRecord!.pubkey,

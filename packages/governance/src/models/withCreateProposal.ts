@@ -10,6 +10,7 @@ import { serialize } from 'borsh';
 import { CreateProposalArgs } from './instructions';
 import { GOVERNANCE_PROGRAM_SEED, VoteType } from './accounts';
 import { PROGRAM_VERSION_V1 } from './registry/api';
+import { getRealmConfigAddress } from './accounts'; 
 
 export const withCreateProposal = async (
   instructions: TransactionInstruction[],
@@ -27,6 +28,7 @@ export const withCreateProposal = async (
   options: string[],
   useDenyOption: boolean,
   payer: PublicKey,
+  voterWeightRecord : PublicKey
 ) => {
   const { system: systemId } = utils.programIds();
 
@@ -40,6 +42,11 @@ export const withCreateProposal = async (
   });
   const data = Buffer.from(
     serialize(getGovernanceSchema(programVersion), args),
+  );
+
+  const realmConfigAddress = await getRealmConfigAddress(
+    programId,
+    realm,
   );
 
   let proposalIndexBuffer = Buffer.alloc(4);
@@ -110,6 +117,15 @@ export const withCreateProposal = async (
       isWritable: false,
       isSigner: false,
     },
+    {
+      pubkey: realmConfigAddress,
+      isWritable : false,
+      isSigner : false
+    },
+    { pubkey: voterWeightRecord,
+      isWritable : false,
+      isSigner : false
+    }
   ];
 
   instructions.push(

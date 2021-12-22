@@ -5,9 +5,11 @@ import { withAddSignatory } from '../models/withAddSignatory';
 import { sendTransactionWithNotifications } from '../tools/transactions';
 import { RpcContext } from '../models/core/api';
 import { VoteType } from '../models/accounts';
+import { withRevise } from '../models/withRevise';
 
 export const createProposal = async (
   { connection, wallet, programId, programVersion, walletPubkey }: RpcContext,
+  accountRecord: any,
   realm: PublicKey,
   governance: PublicKey,
   tokenOwnerRecord: PublicKey,
@@ -27,6 +29,16 @@ export const createProposal = async (
   const options = ['Approve'];
   const useDenyOption = true;
 
+  const voterWeightRecord = await withRevise(
+    instructions,
+    walletPubkey,
+    realm,
+    governingTokenMint,
+    accountRecord.stakeAccountPubkey,
+    new PublicKey(accountRecord.stakeAccount.account_state.BONDED),
+    accountRecord.stakePoolStakingTokenAccountPubkey,
+  );
+  console.log(programVersion)
   const proposalAddress = await withCreateProposal(
     instructions,
     programId,
@@ -37,13 +49,13 @@ export const createProposal = async (
     name,
     descriptionLink,
     governingTokenMint,
-
     governanceAuthority,
     proposalIndex,
     voteType,
     options,
     useDenyOption,
     payer,
+    voterWeightRecord
   );
 
   // Add the proposal creator as the default signatory

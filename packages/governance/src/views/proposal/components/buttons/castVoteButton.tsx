@@ -22,6 +22,7 @@ import { castVote } from '../../../../actions/castVote';
 
 import { useRpcContext } from '../../../../hooks/useRpcContext';
 import { Option } from '../../../../tools/option';
+import { useStakeAccountRecord } from '../../../../hooks/apiHooks';
 
 const { confirm } = Modal;
 export function CastVoteButton({
@@ -40,12 +41,13 @@ export function CastVoteButton({
   hasVoteTimeExpired: boolean | undefined;
 }) {
   const rpcContext = useRpcContext();
+  const accountRecord = useStakeAccountRecord();
 
   const isVisible =
     hasVoteTimeExpired === false &&
     voteRecord?.isNone() &&
     tokenOwnerRecord &&
-    !tokenOwnerRecord.info.governingTokenDepositAmount.isZero() &&
+    accountRecord.votingBalance > 0 &&
     proposal.info.state === ProposalState.Voting;
 
   const [btnLabel, title, msg, icon] =
@@ -87,6 +89,7 @@ export function CastVoteButton({
               proposal,
               tokenOwnerRecord.pubkey,
               vote,
+              accountRecord
             );
           },
         })

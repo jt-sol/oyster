@@ -8,7 +8,11 @@ import {
 import { getGovernanceSchema } from './serialisation';
 import { serialize } from 'borsh';
 import { CastVoteArgs, Vote } from './instructions';
-import { getVoteRecordAddress } from './accounts';
+import {
+  getRealmConfigAddress,
+  getVoteRecordAddress,
+  RealmConfig,
+} from './accounts';
 import { PROGRAM_VERSION_V1 } from './registry/api';
 
 export const withCastVote = async (
@@ -24,6 +28,7 @@ export const withCastVote = async (
   governingTokenMint: PublicKey,
   vote: Vote,
   payer: PublicKey,
+  voterWeightRecord: PublicKey,
 ) => {
   const { system: systemId } = utils.programIds();
 
@@ -41,6 +46,7 @@ export const withCastVote = async (
     proposal,
     tokenOwnerRecord,
   );
+  const realmConfigAddress = await getRealmConfigAddress(programId, realm);
 
   const keys = [
     {
@@ -100,6 +106,16 @@ export const withCastVote = async (
     },
     {
       pubkey: SYSVAR_CLOCK_PUBKEY,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: realmConfigAddress,
+      isSigner: false,
+      isWritable: false,
+    },
+    {
+      pubkey: voterWeightRecord,
       isSigner: false,
       isWritable: false,
     },

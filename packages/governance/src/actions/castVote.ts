@@ -6,6 +6,8 @@ import { withCastVote } from '../models/withCastVote';
 import { Vote, YesNoVote } from '../models/instructions';
 import { sendTransactionWithNotifications } from '../tools/transactions';
 import { RpcContext } from '../models/core/api';
+import { withRevise } from '../models/withRevise';
+import { useStakeAccountRecord } from '../hooks/apiHooks';
 
 export const castVote = async (
   { connection, wallet, programId, programVersion, walletPubkey }: RpcContext,
@@ -13,12 +15,23 @@ export const castVote = async (
   proposal: ParsedAccount<Proposal>,
   tokeOwnerRecord: PublicKey,
   yesNoVote: YesNoVote,
+  accountRecord: any,
 ) => {
   let signers: Account[] = [];
   let instructions: TransactionInstruction[] = [];
 
   let governanceAuthority = walletPubkey;
   let payer = walletPubkey;
+
+  const voterWeightRecord = await withRevise(
+    instructions,
+    walletPubkey,
+    realm,
+    proposal.info.governingTokenMint,
+    <PublicKey>accountRecord.stakeAccountPubkey,
+    new PublicKey(accountRecord.stakeAccount.account_state.BONDED),
+    <PublicKey>accountRecord.stakePoolStakingTokenAccountPubkey,
+  );
 
   await withCastVote(
     instructions,
@@ -33,6 +46,7 @@ export const castVote = async (
     proposal.info.governingTokenMint,
     Vote.fromYesNoVote(yesNoVote),
     payer,
+    voterWeightRecord,
   );
 
   await sendTransactionWithNotifications(

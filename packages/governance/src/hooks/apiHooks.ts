@@ -218,7 +218,10 @@ export function useStakeAccountRecord() {
   ] = useState<any>();
   const [votingBalance, setVotingBalance] = useState<any>();
   const [stakeAccountPubkey, setStakeAccountPubkey] = useState<PublicKey>();
-  const [stakePoolStakingTokenAccountPubkey, setStakePoolStakingTokenAccountPubkey] = useState<PublicKey>();
+  const [
+    stakePoolStakingTokenAccountPubkey,
+    setStakePoolStakingTokenAccountPubkey,
+  ] = useState<PublicKey>();
   useEffect(() => {
     const updateStakeAccount = async () => {
       if (!wallet?.publicKey) {
@@ -283,7 +286,7 @@ export function useStakeAccountRecord() {
       setStakePoolAccount(deserialized);
     };
     updateStakePoolAccount();
-  }, [stakeAccount]);
+  }, [stakeAccount, connection]);
 
   useEffect(() => {
     const updateStakePoolStakingTokenAccount = async () => {
@@ -296,7 +299,9 @@ export function useStakeAccountRecord() {
         new PublicKey(stakeAccount.account_state.BONDED).toBase58(),
       );
 
-      setStakePoolStakingTokenAccountPubkey(new PublicKey(stake_pool_token_account_pubkey));
+      setStakePoolStakingTokenAccountPubkey(
+        new PublicKey(stake_pool_token_account_pubkey),
+      );
 
       const raw_stake_pool_token_account = await connection.getAccountInfo(
         new PublicKey(stake_pool_token_account_pubkey),
@@ -316,7 +321,7 @@ export function useStakeAccountRecord() {
       setStakePoolStakingTokenAccount(deserialized);
     };
     updateStakePoolStakingTokenAccount();
-  }, [stakeAccount]);
+  }, [stakeAccount, connection]);
 
   useEffect(() => {
     const updateVotingBalance = async () => {
@@ -346,6 +351,6 @@ export function useStakeAccountRecord() {
     stakePoolStakingTokenAccount,
     votingBalance,
     stakeAccountPubkey,
-    stakePoolStakingTokenAccountPubkey
+    stakePoolStakingTokenAccountPubkey,
   };
 }

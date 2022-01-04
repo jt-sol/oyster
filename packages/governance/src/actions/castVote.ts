@@ -7,7 +7,6 @@ import { Vote, YesNoVote } from '../models/instructions';
 import { sendTransactionWithNotifications } from '../tools/transactions';
 import { RpcContext } from '../models/core/api';
 import { withRevise } from '../models/withRevise';
-import { useStakeAccountRecord } from '../hooks/apiHooks';
 
 export const castVote = async (
   { connection, wallet, programId, programVersion, walletPubkey }: RpcContext,
@@ -28,9 +27,9 @@ export const castVote = async (
     walletPubkey,
     realm,
     proposal.info.governingTokenMint,
-    <PublicKey>accountRecord.stakeAccountPubkey,
+    accountRecord.stakeAccountPubkey as PublicKey,
     new PublicKey(accountRecord.stakeAccount.account_state.BONDED),
-    <PublicKey>accountRecord.stakePoolStakingTokenAccountPubkey,
+    accountRecord.stakePoolStakingTokenAccountPubkey as PublicKey,
   );
 
   await withCastVote(

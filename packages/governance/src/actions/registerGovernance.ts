@@ -104,6 +104,7 @@ export const registerGovernance = async (
           tokenOwnerRecord,
           walletPubkey,
           governanceAuthority,
+          voterWeightRecord
         )
       ).governanceAddress;
       break;

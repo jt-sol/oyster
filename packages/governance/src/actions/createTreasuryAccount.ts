@@ -42,6 +42,7 @@ export const createTreasuryAccount = async (
       tokenOwnerRecord,
       walletPubkey,
       governanceAuthority,
+      governanceAuthority
     )
   ).governanceAddress;
 

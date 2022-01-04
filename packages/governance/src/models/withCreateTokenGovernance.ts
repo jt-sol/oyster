@@ -8,6 +8,7 @@ import { GOVERNANCE_SCHEMA } from './serialisation';
 import { serialize } from 'borsh';
 import { GovernanceConfig } from './accounts';
 import { CreateTokenGovernanceArgs } from './instructions';
+import { getRealmConfigAddress } from './accounts'; 
 
 export const withCreateTokenGovernance = async (
   instructions: TransactionInstruction[],
@@ -20,6 +21,7 @@ export const withCreateTokenGovernance = async (
   tokenOwnerRecord: PublicKey,
   payer: PublicKey,
   governanceAuthority: PublicKey,
+  voterWeightRecord : PublicKey
 ): Promise<{ governanceAddress: PublicKey }> => {
   const { system: systemId, token: tokenId } = utils.programIds();
 
@@ -36,6 +38,11 @@ export const withCreateTokenGovernance = async (
       governedToken.toBuffer(),
     ],
     programId,
+  );
+
+  const realmConfigAddress = await getRealmConfigAddress(
+    programId,
+    realm,
   );
 
   const keys = [
@@ -89,6 +96,15 @@ export const withCreateTokenGovernance = async (
       isWritable: false,
       isSigner: true,
     },
+    {
+      pubkey: realmConfigAddress,
+      isWritable : false,
+      isSigner : false
+    },
+    { pubkey: voterWeightRecord,
+      isWritable : false,
+      isSigner : false
+    }
   ];
 
   instructions.push(
